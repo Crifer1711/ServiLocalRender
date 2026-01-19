@@ -29,7 +29,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-     const res = await axios.post('http://localhost:3000/api/auth/register/prestador', formData);
+     const res = await axios.post('http://localhost:5000/api/auth/register/prestador', formData);
 
       if (res.data.success) {
         setSuccess('Registro exitoso. Tu cuenta está pendiente de aprobación.');
