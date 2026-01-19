@@ -71,11 +71,63 @@ const RegisterCliente = () => {
         {success && <p className="success-msg">{success}</p>}
 
         <form onSubmit={handleSubmit}>
-          <input name="nombre" placeholder="Nombre completo" value={formData.nombre} onChange={handleChange} className="input-field" required />
-          <input name="username" placeholder="Usuario" value={formData.username} onChange={handleChange} className="input-field" required />
-          <input name="password" type="password" placeholder="Contraseña" value={formData.password} onChange={handleChange} className="input-field" required />
-          <input name="telefono" placeholder="Teléfono" value={formData.telefono} onChange={handleChange} className="input-field" required />
-          <input name="ciudad" placeholder="Ciudad" value={formData.ciudad} onChange={handleChange} className="input-field" required />
+          <div className="input-group">
+          <input type="text" name="nombre" placeholder=" " value={formData.nombre} onChange={handleChange} required />
+          <label>Nombre completo</label>
+          </div>
+
+
+          <div className="input-group">
+          <input
+            type="text"
+            name="username"
+            placeholder=" "
+            value={formData.username}
+            onChange={handleChange}
+            className="input-field"
+            required
+          />
+          <label>Usuario (email o nombre de usuario)</label>
+        </div>
+
+        <div className="input-group">
+          <input
+            type="password"
+            name="password"
+            placeholder=" "
+            value={formData.password}
+            onChange={handleChange}
+            className="input-field"
+            required
+          />
+          <label>Contraseña (mínimo 6 caracteres)</label>
+        </div>
+
+        <div className="input-group">
+          <input
+            type="tel"
+            name="telefono"
+            placeholder=" "
+            value={formData.telefono}
+            onChange={handleChange}
+            className="input-field"
+            required
+          />
+          <label>Teléfono</label>
+        </div>
+
+        <div className="input-group">
+          <input
+            type="text"
+            name="ciudad"
+            placeholder=" "
+            value={formData.ciudad}
+            onChange={handleChange}
+            className="input-field"
+            required
+          />
+          <label>Ciudad</label>
+        </div>
 
           {error && <p className="error-msg">{error}</p>}
 
