@@ -138,6 +138,46 @@ app.get('/api/estadisticas', async (req, res) => {
   }
 });
 
+// Obtener prestador por ID
+app.get('/api/prestador/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [rows] = await pool.query('SELECT * FROM usuarios WHERE id = ? AND rol = "prestador"', [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Prestador no encontrado' });
+    }
+    
+    res.json({ prestador: rows[0] });
+  } catch (error) {
+    console.error('Error al obtener prestador:', error);
+    res.status(500).json({ message: 'Error al obtener prestador' });
+  }
+});
+
+// Actualizar datos del prestador
+app.put('/api/prestador/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, cedula, telefono, oficio, ciudad, direccion, dias_atencion, horario_inicio, horario_fin } = req.body;
+  
+  try {
+    const [result] = await pool.query(
+      'UPDATE usuarios SET nombre = ?, cedula = ?, telefono = ?, oficio = ?, ciudad = ?, direccion = ?, dias_atencion = ?, horario_inicio = ?, horario_fin = ? WHERE id = ? AND rol = "prestador"',
+      [nombre, cedula, telefono, oficio, ciudad, direccion, dias_atencion, horario_inicio, horario_fin, id]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Prestador no encontrado' });
+    }
+    
+    res.json({ success: true, message: 'Datos actualizados correctamente' });
+  } catch (error) {
+    console.error('Error al actualizar prestador:', error);
+    res.status(500).json({ message: 'Error al actualizar prestador' });
+  }
+});
+
 // Eliminar usuario
 app.delete('/api/usuarios/:id', async (req, res) => {
   const { id } = req.params;
