@@ -4,6 +4,8 @@ import ScheduleInput from './ScheduleInput';
 const RegisterForm = ({
   formData,
   handleChange,
+  handleFileChange,
+  fotoPreview,
   handleSubmit,
   loading,
   error,
@@ -38,6 +40,28 @@ const RegisterForm = ({
 
       <InputField name="ciudad" label="Ciudad" value={formData.ciudad} onChange={handleChange} />
       <InputField name="direccion" label="Dirección" value={formData.direccion} onChange={handleChange} />
+
+      <div className="input-group">
+        <input
+          type="file"
+          name="foto"
+          accept="image/png, image/jpeg, image/jpg"
+          className="input"
+          onChange={handleFileChange}
+          required
+        />
+        <label>Foto de perfil</label>
+      </div>
+
+      {fotoPreview && (
+        <div style={{ marginBottom: 16 }}>
+          <img
+            src={fotoPreview}
+            alt="Vista previa"
+            style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12 }}
+          />
+        </div>
+      )}
 
       <ScheduleInput
         value={formData.horario}

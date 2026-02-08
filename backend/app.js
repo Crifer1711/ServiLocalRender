@@ -1,11 +1,21 @@
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use('/uploads', express.static(uploadsDir));
 
 const pool = mysql.createPool({
   host: 'localhost',
@@ -14,6 +24,31 @@ const pool = mysql.createPool({
   database: 'servilocal',
   waitForConnections: true,
   connectionLimit: 10,
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `${unique}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (!allowed.includes(file.mimetype)) {
+    return cb(new Error('Solo se permiten imágenes (jpg, jpeg, png)'));
+  }
+  cb(null, true);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 /* TEST */
@@ -42,7 +77,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 /* REGISTRO PRESTADOR */
-app.post('/api/auth/register/prestador', async (req, res) => {
+app.post('/api/auth/register/prestador', upload.single('foto'), async (req, res) => {
   const {
     nombre,
     cedula,
@@ -56,6 +91,10 @@ app.post('/api/auth/register/prestador', async (req, res) => {
   } = req.body;
 
   try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'La foto es obligatoria' });
+    }
+
     const horarioData = JSON.parse(horario);
 
     const usernameNormalized = String(username || '').trim();
@@ -70,11 +109,13 @@ app.post('/api/auth/register/prestador', async (req, res) => {
       return res.status(409).json({ message: 'Este usuario ya existe' });
     }
 
+    const fotoPath = `/uploads/${req.file.filename}`;
+
     await pool.query(
       `INSERT INTO usuarios 
       (nombre, cedula, username, password, telefono, oficio, ciudad, direccion,
-       dias_atencion, horario_inicio, horario_fin, rol)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prestador')`,
+       dias_atencion, horario_inicio, horario_fin, rol, foto)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prestador', ?)`,
       [
         nombre,
         cedulaNormalized,
@@ -86,7 +127,8 @@ app.post('/api/auth/register/prestador', async (req, res) => {
         direccion,
         horarioData.dias,
         `${horarioData.inicio}:00`,
-        `${horarioData.fin}:00`
+        `${horarioData.fin}:00`,
+        fotoPath
       ]
     );
 
@@ -195,6 +237,16 @@ app.delete('/api/usuarios/:id', async (req, res) => {
     console.error('Error al eliminar usuario:', error);
     res.status(500).json({ message: 'Error al eliminar usuario' });
   }
+});
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ message: err.message });
+  }
+  if (err && err.message && err.message.includes('imágenes')) {
+    return res.status(400).json({ message: err.message });
+  }
+  return res.status(500).json({ message: 'Error del servidor' });
 });
 
 const PORT = 5000;

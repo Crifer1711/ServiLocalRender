@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import axios from 'axios';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RegisterForm from '../components/RegisterForm';
 import axiosPublic from '../api/axiosPublic';
@@ -18,13 +17,51 @@ const Register = () => {
     horario: ''
   });
 
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    return () => {
+      if (fotoPreview) {
+        URL.revokeObjectURL(fotoPreview);
+      }
+    };
+  }, [fotoPreview]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFotoFile(null);
+      setFotoPreview('');
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Solo se permiten imágenes (jpg, jpeg, png).');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede superar 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    if (fotoPreview) {
+      URL.revokeObjectURL(fotoPreview);
+    }
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -34,10 +71,23 @@ const Register = () => {
     setSuccess('');
 
     try {
-      const res = await axiosPublic.post(
-  '/api/auth/register/prestador',
-  formData
-);
+      if (!fotoFile) {
+        const msg = 'Debes seleccionar una foto de perfil.';
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
+      }
+
+      const payload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        payload.append(key, value);
+      });
+      payload.append('foto', fotoFile);
+
+      const res = await axiosPublic.post('/api/auth/register/prestador', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
       if (res.data.success) {
         const successMsg = 'Registro exitoso. Tu cuenta está pendiente de aprobación.';
@@ -81,6 +131,8 @@ const Register = () => {
         <RegisterForm
           formData={formData}
           handleChange={handleChange}
+          handleFileChange={handleFileChange}
+          fotoPreview={fotoPreview}
           handleSubmit={handleSubmit}
           loading={loading}
           error={error}
