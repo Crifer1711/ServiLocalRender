@@ -8,9 +8,33 @@ const ServicesByCategory = () => {
   const navigate = useNavigate();
   const [prestadores, setPrestadores] = useState([]);
   const [selected, setSelected] = useState(null);
+  const backendURL =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+      ? "http://localhost:5000"
+      : `http://${window.location.hostname}:5000`;
+
+  const categoryBackgrounds = {
+    electricista:
+      "https://plus.unsplash.com/premium_photo-1661908782924-de673a5c6988?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8ZWxlY3RyaWNpc3RhfGVufDB8fDB8fHww",
+    plomero:
+      "https://plus.unsplash.com/premium_photo-1663045495725-89f23b57cfc5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGxvbWVyb3xlbnwwfHwwfHx8MA%3D%3D",
+    gas: "https://imagenes.primicias.ec/files/og_thumbnail/uploads/2024/05/25/6652b9f900cd0.jpeg",
+    carpintero:
+      "https://plus.unsplash.com/premium_photo-1664300494539-313eac2a6095?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2FycGludGVyb3xlbnwwfHwwfHx8MA%3D%3D",
+    albanil:
+      "https://media.istockphoto.com/id/2183863027/es/foto/trabajador-de-la-construcci%C3%B3n-sonriendo-y-usando-su-tel%C3%A9fono-celular-en-una-obra.webp?a=1&b=1&s=612x612&w=0&k=20&c=sxEkWS8rnPw2OEzPOnrjmJ0ImTPmrcM5jgV6CzX9Vgo=",
+    ninera:
+      "https://plus.unsplash.com/premium_photo-1710024588156-8fd763d86961?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8bmklQzMlQjFlcmF8ZW58MHx8MHx8fDA%3D",
+    pintor:
+      "https://images.unsplash.com/photo-1602910344216-bd2226c18d4c?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8cGludG9yfGVufDB8fDB8fHww",
+  };
+
+  const backgroundImage =
+    categoryBackgrounds[String(categoria || "").toLowerCase()];
 
 useEffect(() => {
-  fetch(`http://localhost:5000/api/prestadores?oficio=${categoria}`)
+  fetch(`${backendURL}/api/prestadores?oficio=${categoria}`)
     .then(res => res.json())
     .then(data => {
       // 🔒 PROTECCIÓN TOTAL
@@ -25,9 +49,32 @@ useEffect(() => {
 
   const img =
     "https://st3.depositphotos.com/14807954/19325/i/450/depositphotos_193252528-stock-photo-a-young-man-mimicing-against.jpg";
+  const getFotoUrl = (foto) => (foto ? `${backendURL}${foto}` : img);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#accbf3", padding: 30 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: 30,
+        position: "relative",
+        backgroundColor: "#accbf3",
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {backgroundImage && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(225, 238, 248, 0.82)",
+          }}
+        />
+      )}
+
+      <div style={{ position: "relative", zIndex: 1 }}>
 
       {/* BOTÓN HOME */}
      <button
@@ -112,8 +159,11 @@ useEffect(() => {
             }
           >
             <img
-              src={img}
+              src={getFotoUrl(p.foto)}
               alt={p.nombre}
+              onError={(e) => {
+                e.currentTarget.src = img;
+              }}
               style={{ width: "100%", height: 200, objectFit: "cover" }}
             />
             <div style={{ padding: 18 }}>
@@ -160,8 +210,11 @@ useEffect(() => {
             {/* IMAGEN */}
             <div style={{ height: 360 }}>
               <img
-                src={img}
+                src={getFotoUrl(selected.foto)}
                 alt={selected.nombre}
+                onError={(e) => {
+                  e.currentTarget.src = img;
+                }}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -176,13 +229,14 @@ useEffect(() => {
                 {selected.nombre}
               </h2>
 
-              <p><strong>Oficio:</strong> {selected.oficio}</p>
               <p><strong>Ciudad:</strong> {selected.ciudad}</p>
+              <p><strong>Dirección:</strong> {selected.direccion}</p>
               <p><strong>Teléfono:</strong> {selected.telefono}</p>
               <p>
                 <strong>Horario:</strong>{" "}
                 {selected.horario_inicio} - {selected.horario_fin}
               </p>
+              <p><strong>Días de atención:</strong> {selected.dias_atencion}</p>
 
               <a
                 href={`https://wa.me/593${selected.telefono}`}
@@ -227,6 +281,7 @@ useEffect(() => {
           }
         `}
       </style>
+      </div>
     </div>
   );
 };
