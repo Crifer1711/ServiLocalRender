@@ -62,7 +62,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     const [rows] = await pool.query(
-      'SELECT id, nombre, rol FROM usuarios WHERE username=? AND password=?',
+      'SELECT id, nombre, rol, estado FROM usuarios WHERE username=? AND password=?',
       [username, password]
     );
 
@@ -70,7 +70,18 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Credenciales incorrectas' });
     }
 
-    res.json({ success: true, user: rows[0] });
+    const user = rows[0];
+
+    // Verificar estado si es prestador
+    if (user.rol === 'prestador' && user.estado === 'rechazado') {
+      return res.status(403).json({ message: 'El perfil fue desaprobado' });
+    }
+
+    if (user.rol === 'prestador' && user.estado === 'pendiente') {
+      return res.status(403).json({ message: 'Tu cuenta está pendiente de aprobación' });
+    }
+
+    res.json({ success: true, user: { id: user.id, nombre: user.nombre, rol: user.rol } });
   } catch (err) {
     res.status(500).json({ message: 'Error del servidor' });
   }
@@ -114,8 +125,8 @@ app.post('/api/auth/register/prestador', upload.single('foto'), async (req, res)
     await pool.query(
       `INSERT INTO usuarios 
       (nombre, cedula, username, password, telefono, oficio, ciudad, direccion,
-       dias_atencion, horario_inicio, horario_fin, rol, foto)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prestador', ?)`,
+       dias_atencion, horario_inicio, horario_fin, rol, foto, estado)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prestador', ?, 'pendiente')`,
       [
         nombre,
         cedulaNormalized,
@@ -139,13 +150,29 @@ app.post('/api/auth/register/prestador', upload.single('foto'), async (req, res)
   }
 });
 
-/* PRESTADORES POR OFICIO */
+/* OBTENER TODOS LOS USUARIOS */
+app.get('/api/usuarios', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM usuarios');
+    res.json({ usuarios: rows });
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error);
+    res.status(500).json({ message: 'Error al obtener usuarios' });
+  }
+});
+
+/* PRESTADORES POR OFICIO (solo aprobados para servicios públicos) */
 app.get('/api/prestadores', async (req, res) => {
-  const { oficio } = req.query;
+  const { oficio, incluirPendientes } = req.query;
 
   try {
     let query = 'SELECT * FROM usuarios WHERE rol="prestador"';
     const params = [];
+
+    // Solo mostrar aprobados en servicios públicos, a menos que se solicite explícitamente
+    if (!incluirPendientes) {
+      query += ' AND estado = "aprobado"';
+    }
 
     if (oficio) {
       query += ' AND oficio = ?';
@@ -236,6 +263,61 @@ app.delete('/api/usuarios/:id', async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar usuario:', error);
     res.status(500).json({ message: 'Error al eliminar usuario' });
+  }
+});
+
+/* OBTENER PRESTADORES PENDIENTES */
+app.get('/api/prestadores/pendientes', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM usuarios WHERE rol = "prestador" AND estado = "pendiente" ORDER BY id DESC'
+    );
+    res.json({ prestadores: rows });
+  } catch (error) {
+    console.error('Error al obtener prestadores pendientes:', error);
+    res.status(500).json({ message: 'Error al obtener prestadores pendientes' });
+  }
+});
+
+/* APROBAR PRESTADOR */
+app.put('/api/prestadores/:id/aprobar', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [result] = await pool.query(
+      'UPDATE usuarios SET estado = "aprobado" WHERE id = ? AND rol = "prestador"',
+      [id]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Prestador no encontrado' });
+    }
+    
+    res.json({ success: true, message: 'Prestador aprobado exitosamente' });
+  } catch (error) {
+    console.error('Error al aprobar prestador:', error);
+    res.status(500).json({ message: 'Error al aprobar prestador' });
+  }
+});
+
+/* RECHAZAR PRESTADOR */
+app.put('/api/prestadores/:id/rechazar', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [result] = await pool.query(
+      'UPDATE usuarios SET estado = "rechazado" WHERE id = ? AND rol = "prestador"',
+      [id]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Prestador no encontrado' });
+    }
+    
+    res.json({ success: true, message: 'Prestador rechazado' });
+  } catch (error) {
+    console.error('Error al rechazar prestador:', error);
+    res.status(500).json({ message: 'Error al rechazar prestador' });
   }
 });
 
