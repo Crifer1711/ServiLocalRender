@@ -8,19 +8,19 @@ const loginAdmin = async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
-      'SELECT * FROM administradores WHERE username = ? AND password = ?',
+    const result = await pool.query(
+      'SELECT * FROM administradores WHERE username = $1 AND password = $2',
       [username, password]
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ message: 'Credenciales incorrectas' });
     }
 
     res.json({
       success: true,
       message: 'Login exitoso',
-      admin: { id: rows[0].id, nombre: rows[0].nombre }
+      admin: { id: result.rows[0].id, nombre: result.rows[0].nombre }
     });
   } catch (error) {
     console.error(error);

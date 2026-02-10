@@ -1,0 +1,29 @@
+services:
+  # Backend API
+  - type: web
+    name: servilocal-backend
+    runtime: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: servilocal-db
+          property: connectionString
+    
+  # Frontend React
+  - type: web
+    name: servilocal-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://servilocal-backend.onrender.com
+
+databases:
+  - name: servilocal-db
+    databaseName: servilocal
+    user: servilocal_user

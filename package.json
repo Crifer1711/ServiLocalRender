@@ -2,7 +2,7 @@
   "name": "servilocal",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:3000",
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@vis.gl/react-google-maps": "^1.0.0",
     "axios": "^1.0.0",
